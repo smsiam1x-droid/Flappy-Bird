@@ -121,6 +121,8 @@
             right: 20px;
             pointer-events: auto;
             z-index: 100;
+            /* Ensure it is always visible and clickable */
+            display: flex !important; 
         }
 
         .autopilot-wrapper {
@@ -285,7 +287,6 @@
     <canvas id="gameCanvas"></canvas>
     <div id="modal-overlay"></div>
 
-    <!-- Big Play Button Overlay (Shows only when Paused) -->
     <div id="play-overlay" onclick="togglePause()">
         <div class="big-play-btn">▶</div>
     </div>
@@ -296,7 +297,6 @@
             <span id="coin-count">0</span>
         </div>
         
-        <!-- Top Right Controls -->
         <div class="top-right-controls">
             <div class="control-group-row">
                 <div class="icon-btn" onclick="toggleShop()">🐦</div>
@@ -304,12 +304,10 @@
             </div>
             <div class="control-group-col">
                 <div class="icon-btn" onclick="toggleSettings()">⚙️</div>
-                <!-- Small Pause Icon -->
                 <div class="icon-btn" id="pause-btn" onclick="togglePause()">⏸️</div>
             </div>
         </div>
 
-        <!-- Bottom Right Controls: AutoPilot -->
         <div class="bottom-right-controls">
             <div class="autopilot-wrapper" id="autopilot-ui">
                 <div class="switch-label">AUTO PILOT</div>
@@ -335,7 +333,6 @@
             </div>
         </div>
 
-        <!-- Settings Modal -->
         <div id="settings-modal" class="modal">
             <h2>GAME SETTINGS</h2>
             <div class="mode-label">GAME MODE: <span id="current-mode-text" style="color:#e0ac18">MEDIUM</span></div>
@@ -374,7 +371,6 @@
             </div>
         </div>
 
-        <!-- Shop Modal -->
         <div id="shop-modal" class="modal">
             <h2>SELECT CHARACTER</h2>
             <div class="char-grid">
@@ -391,7 +387,6 @@
             <button class="btn" onclick="toggleShop()">CLOSE</button>
         </div>
 
-        <!-- Theme Modal -->
         <div id="theme-modal" class="modal">
             <h2>SELECT THEME</h2>
             <div class="char-grid">
@@ -529,7 +524,7 @@
     });
 
     let score = 0;
-    let coins = 0;
+    let totalCoins = parseInt(localStorage.getItem('flappyTotalCoins')) || 0;
     let highScore = localStorage.getItem('flappyHighScore') || 0;
 
     function resize() {
@@ -599,7 +594,6 @@
         draw: function() { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation); this.drawSkin(currentSkin); ctx.restore(); },
         drawSkin: function(skin) {
             let wingY = (this.animation[this.frame] === 1) ? 2 : -2;
-            // Skin drawing logic (Compact for brevity, same as before)
             if(skin=='pony'){ ctx.fillStyle="#fff"; ctx.beginPath(); ctx.ellipse(0,2,18,10,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.ellipse(12,-6,8,6,Math.PI/6,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.ellipse(18,-4,4,3,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle="#ffd700"; ctx.beginPath(); ctx.moveTo(14,-10); ctx.lineTo(22,-18); ctx.lineTo(18,-8); ctx.fill(); ctx.stroke(); ctx.fillStyle="#ff69b4"; ctx.beginPath(); ctx.moveTo(8,-10); ctx.quadraticCurveTo(4,-15,0,-10); ctx.lineTo(-5,-2); ctx.fill(); ctx.beginPath(); ctx.moveTo(-15,0); ctx.quadraticCurveTo(-25,wingY,-22,5); ctx.lineTo(-15,2); ctx.fill(); ctx.fillStyle="#fff"; ctx.beginPath(); ctx.rect(-10,8,6,6); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.rect(4,8,6,6); ctx.fill(); ctx.stroke(); ctx.fillStyle="black"; ctx.beginPath(); ctx.arc(14,-7,1.5,0,Math.PI*2); ctx.fill(); }
             else if(skin=='alien'){ ctx.fillStyle="#a8dcd9"; ctx.beginPath(); ctx.arc(0,-5,10,Math.PI,0); ctx.fill(); ctx.stroke(); ctx.fillStyle="#888"; ctx.beginPath(); ctx.ellipse(0,5,18,8,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle=(frames%10<5)?"red":"lime"; ctx.beginPath(); ctx.arc(-10,5,2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(0,8,2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(10,5,2,0,Math.PI*2); ctx.fill(); }
             else if(skin=='eagle'){ ctx.fillStyle="#5d4037"; ctx.beginPath(); ctx.ellipse(0,0,18,12,0,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(8,-6,9,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#4e342e"; ctx.beginPath(); ctx.moveTo(-5,-2); ctx.quadraticCurveTo(-15,wingY-10,-18,5); ctx.lineTo(-5,2); ctx.fill(); ctx.stroke(); ctx.fillStyle="yellow"; ctx.beginPath(); ctx.arc(8,-7,3,0,Math.PI*2); ctx.fill(); ctx.fillStyle="black"; ctx.beginPath(); ctx.arc(9,-7,1,0,Math.PI*2); ctx.fill(); ctx.fillStyle="#ffb300"; ctx.beginPath(); ctx.moveTo(14,-8); ctx.quadraticCurveTo(24,-4,18,6); ctx.lineTo(14,0); ctx.fill(); ctx.stroke(); }
@@ -616,7 +610,12 @@
                 ctx.fillStyle=bk; ctx.beginPath(); if(skin=='duck') ctx.ellipse(14,-6,6,3,0,0,Math.PI*2); else {ctx.moveTo(8,2); ctx.lineTo(18,6); ctx.lineTo(8,10);} ctx.fill(); ctx.stroke();
             }
         },
-        flap: function() { this.velocity = -this.jumpStrength; this.rotation = -25 * DEGREE; playSound('jump'); },
+        // UPDATED: Added sound toggle parameter to prevent auto-pilot lag
+        flap: function(playSoundEffect = true) { 
+            this.velocity = -this.jumpStrength; 
+            this.rotation = -25 * DEGREE; 
+            if(playSoundEffect) playSound('jump'); 
+        },
         update: function() {
             const p = state.current == state.getReady ? 10 : 5; this.frame += frames % p == 0 ? 1 : 0; this.frame %= this.animation.length;
             if (state.current == state.getReady) { this.y = 150; this.rotation = 0; } 
@@ -654,7 +653,15 @@
             for (let i = 0; i < this.position.length; i++) {
                 let p = this.position[i]; p.x -= physics.speed; let bY = p.y + this.h + this.gap;
                 if (bird.x + bird.radius > p.x && bird.x - bird.radius < p.x + this.w && (bird.y - bird.radius < p.y + this.h || bird.y + bird.radius > bY)) { state.current = state.over; playSound('hit'); showGameOver(); }
-                if (!p.coinCollected && bird.x > p.x && bird.x < p.x + this.w && bird.y > p.y + this.h && bird.y < bY) { p.coinCollected = true; coins++; coinElement.innerText = coins; playSound('coin'); }
+                
+                if (!p.coinCollected && bird.x > p.x && bird.x < p.x + this.w && bird.y > p.y + this.h && bird.y < bY) { 
+                    p.coinCollected = true; 
+                    totalCoins++; 
+                    localStorage.setItem('flappyTotalCoins', totalCoins);
+                    coinElement.innerText = totalCoins; 
+                    playSound('coin'); 
+                }
+
                 if (p.x + this.w < bird.x - bird.radius && p.x + this.w + physics.speed >= bird.x - bird.radius) { score++; scoreElement.innerText = score; playSound('score'); }
                 if (p.x + this.w <= 0) { this.position.shift(); i--; }
             }
@@ -666,8 +673,10 @@
         if (!autoPilot || state.current !== state.game) return;
         let nextPipe = null;
         for (let i = 0; i < pipes.position.length; i++) { if (pipes.position[i].x + pipes.w > bird.x) { nextPipe = pipes.position[i]; break; } }
-        if (nextPipe) { let gc = nextPipe.y + pipes.h + (pipes.gap / 2); if (bird.y > gc + 10 && bird.velocity >= 0) bird.flap(); }
-        else { if (bird.y > (canvas.height - fg.h)/2 && bird.velocity >= 0) bird.flap(); }
+        
+        // UPDATED: Calling bird.flap(false) disables sound for auto-pilot to prevent lag
+        if (nextPipe) { let gc = nextPipe.y + pipes.h + (pipes.gap / 2); if (bird.y > gc + 10 && bird.velocity >= 0) bird.flap(false); }
+        else { if (bird.y > (canvas.height - fg.h)/2 && bird.velocity >= 0) bird.flap(false); }
     }
 
     function draw() { bg.draw(); rainbowTrail.draw(); pipes.draw(); fg.draw(); bird.draw(); }
@@ -676,8 +685,8 @@
 
     // UI State Management
     function updateAutoPilotVisibility() {
-        if (state.current !== state.game || isPaused) autoPilotUI.style.display = 'flex';
-        else autoPilotUI.style.display = 'none';
+        // UPDATED: Always keep visible
+        autoPilotUI.style.display = 'flex'; 
     }
 
     function updatePauseButtonState() {
@@ -695,7 +704,6 @@
     }
 
     function openModal(modal) {
-        // Close others first
         settingsModal.style.display = 'none';
         shopModal.style.display = 'none';
         themeModal.style.display = 'none';
@@ -715,7 +723,6 @@
         shopModal.style.display = 'none';
         themeModal.style.display = 'none';
         modalOverlay.style.display = 'none';
-        // User must manually resume if in game
     }
 
     window.toggleSettings = function() {
@@ -743,11 +750,10 @@
         el.classList.add('selected');
     }
 
-    // Mode Logic
     window.setDifficulty = function(mode) {
         currentMode = mode.toUpperCase();
         modeText.innerText = currentMode;
-        customControls.style.display = 'none'; // Hide custom when preset selected
+        customControls.style.display = 'none'; 
         
         if (mode === 'easy') updatePhysicsUI(3.0, 0.15, 1.5, 250);
         else if (mode === 'medium') updatePhysicsUI(4.0, 0.25, 2.0, 150);
@@ -787,7 +793,7 @@
 
     function showGameOver() {
         gameOverScreen.style.display = "block";
-        playOverlay.style.display = "none"; // Hide pause overlay on game over
+        playOverlay.style.display = "none"; 
         updateAutoPilotVisibility();
         
         let contentHtml = '';
@@ -805,8 +811,12 @@
 
     window.resetGame = function() {
         bird.reset(); pipes.reset(); rainbowTrail.points = [];
-        score = 0; coins = 0; frames = 0;
-        scoreElement.innerText = score; coinElement.innerText = coins;
+        score = 0; 
+        frames = 0;
+        
+        scoreElement.innerText = score; 
+        coinElement.innerText = totalCoins;
+        
         state.current = state.getReady;
         gameOverScreen.style.display = "none";
         startBtn.style.display = "block";
@@ -817,12 +827,11 @@
 
     // Global Inputs
     function handleGlobalInput(e) {
-        // Ignore clicks on interactive elements
         if(e.target.closest('button') || e.target.closest('input') || e.target.closest('.icon-btn') || e.target.closest('.char-item') || e.target.closest('.autopilot-wrapper') || e.target.closest('.modal')) return;
         
         if(isPaused || (autoPilot && state.current === state.game)) return;
-        if(state.current === state.getReady) { startGame(); bird.flap(); }
-        else if(state.current === state.game) bird.flap();
+        if(state.current === state.getReady) { startGame(); bird.flap(true); }
+        else if(state.current === state.game) bird.flap(true); // True = play sound on tap
     }
 
     window.addEventListener("keydown", (e) => { if(e.code==="Space") { if(state.current===state.game && isPaused) togglePause(); else handleGlobalInput({target: document.body}); } });
@@ -834,9 +843,9 @@
     resize(); fg.y = canvas.height - 112; 
     bird.jumpStrength = physics.jumpForce; bird.gravity = physics.gravity; pipes.gap = physics.gap;
     updateAutoPilotVisibility();
+    coinElement.innerText = totalCoins;
     loop();
 
 </script>
 </body>
 </html>
-
